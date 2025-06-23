@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 from matriz import myarray
-from polys import poly
+from poly import poly
 
 class cubica:
     def __init__(self, x, y):

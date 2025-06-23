@@ -7,8 +7,8 @@ Created on Tue Jun 10 19:27:15 2025
 """
 
 from matplotlib import pyplot as plt
-from Matriz_2 import Matriz
-from Tp_poly_bien2 import Poly
+from matriz import Matriz
+from poly import Poly
 from scipy.interpolate import CubicSpline
 
 """

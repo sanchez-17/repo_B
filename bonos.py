@@ -5,8 +5,8 @@ Created on Mon Jun 16 09:37:28 2025
 
 @author: bautistacenci
 """
-from Tp_poly_bien2 import Poly
-from Fechas_2 import Fechas
+from poly import Poly
+from fechas import Fechas
 import pandas as pd 
 pd.set_option('display.max_rows', None)    # para mostrar todas las filas
 pd.set_option('display.max_columns', None) # para mostrar todas las columnas
