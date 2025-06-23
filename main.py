@@ -43,3 +43,36 @@ flujos_ejemplo = [
 
 vp = valuar_flujos(flujos_ejemplo, factores)
 print(f"Valor presente descontado de los flujos: {vp:.4f}")
+
+#%% Ejercicio 4 c)
+
+from curva_bootstrap import bootstrapping, mostrar_curva
+
+# Tasas par anuales en decimal (simuladas o del punto b)
+tasas_par = [0.05, 0.055, 0.057]  # 5%, 5.5%, 5.7% anual
+
+spots = bootstrapping(tasas_par)
+mostrar_curva(spots)
+
+#%% Ejercicio 4 d)
+
+from curva_bootstrap import valuar_bono_con_spot
+
+valor_nominal_bono4 = 100
+cupon_anual_bono4 = 0.09  # 9%
+
+vp_bono4 = valuar_bono_con_spot(valor_nominal_bono4, cupon_anual_bono4, spots)
+print(f"\nPrecio libre de arbitraje del Bono 4: {vp_bono4:.4f}")
+
+precio_mercado_bono4 = 109.01
+print(f"Precio de mercado del Bono 4: {precio_mercado_bono4:.2f}")
+
+#%% Ejercicio 4 d)
+if vp_bono4 < precio_mercado_bono4:
+    print("El bono 4 está sobrevaluado en el mercado.")
+    #print("Estrategia de arbitraje: Vender el bono 4 y comprar sus flujos replicados con strip bonds.")
+elif vp_bono4 > precio_mercado_bono4:
+    print("El bono 4 está subvaluado en el mercado.")
+    #print("Estrategia de arbitraje: Comprar el bono 4 y vender sus flujos replicados con strip bonds.")
+else:
+    print("El bono 4 está correctamente valuado. No hay oportunidad de arbitraje.")
