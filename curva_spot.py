@@ -6,7 +6,6 @@ Created on Mon Jun 23 00:40:57 2025
 """
 
 from bonos import Bono
-from fechas import Fechas
 from spline_cubica import cubica
 
 def crear_bono(maturity_years, annual_coupon, price):

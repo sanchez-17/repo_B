@@ -504,133 +504,136 @@ class Matriz(object):
         
 
                                 
-              
+     
+
+        
+# #%% -----------------TESTS------------------------------- De aca para abajo se puede borrar todo
+
+         
         
 
-datos = [
-    2, 0, 1, 3, 4,
-    1, 2, 0, 1, 5,
-    3, 0, 2, 2, 1,
-    0, 1, 2, 2, 3,
-    4, 1, 0, 5, 2
-]
+# datos = [
+#     2, 0, 1, 3, 4,
+#     1, 2, 0, 1, 5,
+#     3, 0, 2, 2, 1,
+#     0, 1, 2, 2, 3,
+#     4, 1, 0, 5, 2
+# ]
 
-m = Matriz(datos, 5, 5, by_row=True)
-#inversa= m.inversametod([1,2,3,4,5])
-inversa= m.resolver_sistema([1,2,3,4,5])
-print(inversa)
+# m = Matriz(datos, 5, 5, by_row=True)
+# #inversa= m.inversametod([1,2,3,4,5])
+# inversa= m.resolver_sistema([1,2,3,4,5])
+# print(inversa)
         
          
+#%%        
+
+
+# # Sistema: 2x + y = 5, x + 3y = 6
+# A_lista = [2, 1,
+#            1, 3]
+# y_lista = [5, 6]
+
+# m = Matriz(A_lista, 2, 2, by_row=True)
+# x_resultado = m.resolver_sistema(y_lista)
+
+# # Verificamos con NumPy
+# A_np = np.array([[2, 1], [1, 3]], dtype=float)
+# y_np = np.array([5, 6], dtype=float)
+# x_np = np.linalg.solve(A_np, y_np)
+
+# assert np.allclose(x_resultado, x_np), f"Error en test 1: {x_resultado} != {x_np}"
+# print("Test 1 aprobado.") 
+
+# #%%
+# def test_trivial_1x1():
     
-        
-#%% -----------------TESTS------------------------------- De aca para abajo se puede borrar todo
+#     A_lista = [4]
+#     y_lista = [12]
 
+#     m = Matriz(A_lista, 1, 1, by_row=True)
+#     x_resultado = m.resolver_sistema(y_lista)
 
-# Sistema: 2x + y = 5, x + 3y = 6
-A_lista = [2, 1,
-           1, 3]
-y_lista = [5, 6]
+#     x_np = np.linalg.solve(np.array([[4.0]]), np.array([12.0]))
+#     assert np.allclose(x_resultado, x_np), f"Error en test trivial: {x_resultado} != {x_np}"
+#     print("Test 2 aprobado.") 
 
-m = Matriz(A_lista, 2, 2, by_row=True)
-x_resultado = m.resolver_sistema(y_lista)
+# test_trivial_1x1()       
 
-# Verificamos con NumPy
-A_np = np.array([[2, 1], [1, 3]], dtype=float)
-y_np = np.array([5, 6], dtype=float)
-x_np = np.linalg.solve(A_np, y_np)
-
-assert np.allclose(x_resultado, x_np), f"Error en test 1: {x_resultado} != {x_np}"
-print("Test 1 aprobado.") 
-
-#%%
-def test_trivial_1x1():
+# #%%
+# def test_2x2_basico():
     
-    A_lista = [4]
-    y_lista = [12]
+#     A_lista = [1, 1,
+#                1, -1]
+#     y_lista = [4, 2]
 
-    m = Matriz(A_lista, 1, 1, by_row=True)
-    x_resultado = m.resolver_sistema(y_lista)
+#     m = Matriz(A_lista, 2, 2, by_row=True)
+#     x_resultado = m.resolver_sistema(y_lista)
 
-    x_np = np.linalg.solve(np.array([[4.0]]), np.array([12.0]))
-    assert np.allclose(x_resultado, x_np), f"Error en test trivial: {x_resultado} != {x_np}"
-    print("Test 2 aprobado.") 
+#     A_np = np.array([[1, 1], [1, -1]], dtype=float)
+#     y_np = np.array([4, 2], dtype=float)
+#     x_np = np.linalg.solve(A_np, y_np)
 
-test_trivial_1x1()       
+#     assert np.allclose(x_resultado, x_np), f"Error en test 2x2: {x_resultado} != {x_np}"
+#     print("Test 3 aprobado.") 
 
-#%%
-def test_2x2_basico():
+# test_2x2_basico()
+# #%%
+# def test_resultado_decimal():
     
-    A_lista = [1, 1,
-               1, -1]
-    y_lista = [4, 2]
+#     A_lista = [2, 3,
+#                4, 1]
+#     y_lista = [8, 10]
 
-    m = Matriz(A_lista, 2, 2, by_row=True)
-    x_resultado = m.resolver_sistema(y_lista)
+#     m = Matriz(A_lista, 2, 2, by_row=True)
+#     x_resultado = m.resolver_sistema(y_lista)
 
-    A_np = np.array([[1, 1], [1, -1]], dtype=float)
-    y_np = np.array([4, 2], dtype=float)
-    x_np = np.linalg.solve(A_np, y_np)
+#     A_np = np.array([[2, 3], [4, 1]], dtype=float)
+#     y_np = np.array([8, 10], dtype=float)
+#     x_np = np.linalg.solve(A_np, y_np)
 
-    assert np.allclose(x_resultado, x_np), f"Error en test 2x2: {x_resultado} != {x_np}"
-    print("Test 3 aprobado.") 
-
-test_2x2_basico()
-#%%
-def test_resultado_decimal():
-    
-    A_lista = [2, 3,
-               4, 1]
-    y_lista = [8, 10]
-
-    m = Matriz(A_lista, 2, 2, by_row=True)
-    x_resultado = m.resolver_sistema(y_lista)
-
-    A_np = np.array([[2, 3], [4, 1]], dtype=float)
-    y_np = np.array([8, 10], dtype=float)
-    x_np = np.linalg.solve(A_np, y_np)
-
-    assert np.allclose(x_resultado, x_np), f"Error en test decimal: {x_resultado} != {x_np}"
-    print("Test 4 aprobado.") 
+#     assert np.allclose(x_resultado, x_np), f"Error en test decimal: {x_resultado} != {x_np}"
+#     print("Test 4 aprobado.") 
                         
-test_resultado_decimal()
+# test_resultado_decimal()
 
-#%%
-def test_random_seeded():
+# #%%
+# def test_random_seeded():
     
-    np.random.seed(42)
-    A_np = np.random.rand(4, 4)
-    y_np = np.random.rand(4)
+#     np.random.seed(42)
+#     A_np = np.random.rand(4, 4)
+#     y_np = np.random.rand(4)
 
-    A_lista = A_np.flatten().tolist()
-    y_lista = y_np.tolist()
+#     A_lista = A_np.flatten().tolist()
+#     y_lista = y_np.tolist()
 
-    m = Matriz(A_lista, 4, 4, by_row=True)
-    x_resultado = m.resolver_sistema(y_lista)
+#     m = Matriz(A_lista, 4, 4, by_row=True)
+#     x_resultado = m.resolver_sistema(y_lista)
 
-    x_np = np.linalg.solve(A_np, y_np)
-    assert np.allclose(x_resultado, x_np), f"Error en test aleatorio: {x_resultado} != {x_np}"
-    print("Test 5 aprobado.") 
-test_random_seeded()
-#%%
-def test_sistema_singular():
+#     x_np = np.linalg.solve(A_np, y_np)
+#     assert np.allclose(x_resultado, x_np), f"Error en test aleatorio: {x_resultado} != {x_np}"
+#     print("Test 5 aprobado.") 
+# test_random_seeded()
+# #%%
+# def test_sistema_singular():
     
-    A_lista = [2, 4,
-               1, 2]
-    y_lista = [6, 3]  # Segunda ecuación es un múltiplo de la primera
+#     A_lista = [2, 4,
+#                1, 2]
+#     y_lista = [6, 3]  # Segunda ecuación es un múltiplo de la primera
 
-    m = Matriz(A_lista, 2, 2, by_row=True)
+#     m = Matriz(A_lista, 2, 2, by_row=True)
 
-    try:
-        _ = m.resolver_sistema(y_lista)
-        assert False, "Error: no lanzó excepción en sistema singular"
+#     try:
+#         _ = m.resolver_sistema(y_lista)
+#         assert False, "Error: no lanzó excepción en sistema singular"
         
-    except ZeroDivisionError:
-        print("Test 6 aprobado.") 
-        pass  # esperado
-    except Exception as e:
-        assert "singular" in str(e).lower(), f"Excepción inesperada: {e}"
+#     except ZeroDivisionError:
+#         print("Test 6 aprobado.") 
+#         pass  # esperado
+#     except Exception as e:
+#         assert "singular" in str(e).lower(), f"Excepción inesperada: {e}"
 
-test_sistema_singular()
+# test_sistema_singular()
         
 
       

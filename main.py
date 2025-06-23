@@ -9,7 +9,6 @@ Created on Mon Jun 23 00:41:55 2025
 
 from curva_spot import calcular_spots, tasa_spot_interpolada
 
-
 bonos_data = [
     {'maturity': 1, 'annual_coupon': 0.10, 'price': 106.56},
     {'maturity': 2, 'annual_coupon': 0.08, 'price': 106.20},
@@ -27,7 +26,6 @@ for semestre in range(0, 7):
 # if __name__ == "__main__":
 #     main()
 
-#%% 
 #%%  Ejercicio 4 b)
 
 from curva_descuento import calcular_factores_descuento, valuar_flujos

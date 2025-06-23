@@ -68,6 +68,33 @@ class cubica:
         Y.elems[Y.get_pos(fila, 0)] = 0
 
         return M, Y
+    
+    def calcular_coeficientes(self):
+        M, Y = self.interpolar()
+        solucion = M.resolver_sistema(Y.elems)#[1].elems
+        tramos = [solucion[i:i+4] for i in range(0, len(solucion), 4)]
+        # Guardamos los polinomios (coeficientes) para evaluar después
+        self.polinomios = tramos
+
+    def evaluar(self, x_eval):
+        n = len(self.x) - 1
+        # Si está antes del primer punto, devuelvo valor en x[0]
+        if x_eval < self.x[0]:
+            coefs = self.polinomios[0]
+        # Si está después del último punto, devuelvo valor en x[-1]
+        elif x_eval > self.x[-1]:
+            coefs = self.polinomios[-1]
+        else:
+            # Buscar el tramo donde cae x_eval
+            for i in range(n):
+                if self.x[i] <= x_eval <= self.x[i+1]:
+                    coefs = self.polinomios[i]
+                    break
+        a, b, c, d = coefs
+        dx = x_eval
+        return a*dx**3 + b*dx**2 + c*dx + d
+
+
 
     def graficar(self):
         import numpy as np
@@ -140,17 +167,17 @@ def inversametod_robusta(self, listadey):
     return copia, y
 
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
     # Activamos el nuevo método robusto
     #Matriz.inversametod = inversametod_robusta
     
     # Datos de prueba
-    x = [1, 2, 3, 4, 5]
-    y = [4, 3, 5, 9, 10]
+    # x = [1, 2, 3, 4, 5]
+    # y = [4, 3, 5, 9, 10]
     
-    # Crear spline y graficar
-    spl = cubica(x, y)
-    spl.graficar()
+    # # Crear spline y graficar
+    # spl = cubica(x, y)
+    # spl.graficar()
     
 #%%
 
@@ -158,18 +185,18 @@ if __name__ == "__main__":
 
 
 # Test 1: 3 puntos (caso mínimo para un solo tramo)
-x = [0, 1, 2]
-y = [1, 2, 0]
+# x = [0, 1, 2]
+# y = [1, 2, 0]
 
-print("TEST 1: 3 puntos")
-spline = cubica(x, y)
-M, Y = spline.interpolar()
+# print("TEST 1: 3 puntos")
+# spline = cubica(x, y)
+# M, Y = spline.interpolar()
 
-print("Matriz M:")
-print(M)
-print("Vector Y:")
-print(Y)
+# print("Matriz M:")
+# print(M)
+# print("Vector Y:")
+# print(Y)
 
-spline.graficar()
+# spline.graficar()
 
 
