@@ -5,7 +5,7 @@ Created on Mon Jun 23 00:40:57 2025
 @author: Gaston
 """
 
-from bono import Bono
+from bonos import Bono
 from fechas import Fechas
 from spline_cubica import cubica
 
@@ -60,5 +60,22 @@ def calcular_spots(bonos_data, overnight_rate):
 
     return spline
 
+# def tasa_spot_interpolada(spline, semestre):
+#     return spline.interpolar(semestre)
+
+
 def tasa_spot_interpolada(spline, semestre):
-    return spline.interpolar(semestre)
+    M, Y = spline.interpolar()
+    solucion = M.resolver_sistema(Y.elems)#[1].elems
+    tramos = [solucion[i:i+4] for i in range(0, len(solucion), 4)]
+    x = spline.x
+    
+    # Buscar tramo donde semestre cae entre x[i] y x[i+1]
+    for i in range(len(x) - 1):
+        if x[i] <= semestre <= x[i+1]:
+            coefs = tramos[i]  # coeficientes del tramo
+            # Evaluar polinomio cúbico: a*x^3 + b*x^2 + c*x + d
+            val = sum(coefs[j] * semestre**(3-j) for j in range(4))
+            return val
+
+    raise ValueError("Semestre fuera del rango de interpolación")

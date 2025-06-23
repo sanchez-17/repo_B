@@ -1,6 +1,16 @@
 from matplotlib import pyplot as plt
-from matriz import myarray
-from poly import poly
+#from Matriz import myarray
+from matriz import Matriz
+#from polys import poly
+from poly import Poly
+from scipy.interpolate import CubicSpline
+
+"""
+Ahora interpola bien: El error es que invertias el orden de los coeficientes pero Poly se maneja con el otro orden
+Es decir, le saque el reversed(tramo) y listo.
+Cambie el color para graficar. y modifique en Poly como maneja cada subplot.
+inversa_method_robusto no se usa. Quizá se creo para evitar la division por cero. Pero en Matriz eso ya se tiene en cuenta. Se podria descartar este metodo.
+"""
 
 class cubica:
     def __init__(self, x, y):
@@ -12,8 +22,10 @@ class cubica:
         y = self.y
         n = len(x) - 1  # número de tramos
 
-        M = myarray([0] * (4 * n)**2, 4 * n, 4 * n, True)
-        Y = myarray([0] * (4 * n), 4 * n, 1, True)
+        #M = myarray([0] * (4 * n)**2, 4 * n, 4 * n, True)
+        M = Matriz([0] * (4 * n)**2, 4 * n, 4 * n, True)
+        #Y = myarray([0] * (4 * n), 4 * n, 1, True)
+        Y = Matriz([0] * (4 * n), 4 * n, 1, True)
         fila = 0
 
         # Paso 1: el spline pasa por cada punto inicial y final de cada tramo
@@ -58,16 +70,33 @@ class cubica:
         return M, Y
 
     def graficar(self):
+        import numpy as np
         M, Y = self.interpolar()
-        solucion = M.inversametod(Y.elems)[1].elems
+        solucion = M.resolver_sistema(Y.elems)#[1].elems
         tramos = [solucion[i:i+4] for i in range(0, len(solucion), 4)]
-        polinomios = [poly(list(reversed(coefs))) for coefs in tramos]
+        polinomios = [Poly(3,list(tramo)) for tramo in tramos]
+        #polinomios = []
+        #for tramo in tramos:
+        #    a = tramo[0]
+        #    b = tramo[-1]  
+        #    x = np.linspace(a, b, 300)
+        #    polinomios.append(CubicSpline(x, tramo) )
+
 
         fig, ax = plt.subplots()
+#        colors = plt.cm.viridis(np.linspace(0, 1, len(tramos)))
+#        colors = plt.cm.cividis(np.linspace(0, 1, len(tramos)))
+        colors = plt.cm.tab10(np.linspace(0, 1, len(tramos)))
+
+
         for i, (p, a, b) in enumerate(zip(polinomios, self.x[:-1], self.x[1:])):
             print(f"Tramo {i+1} entre x = {a} y x = {b}:")
             p.get_expression()
-            p.poly_plt(a, b, ax)
+            #p.ply_plt(a, b)#, ax)
+            p.ply_plt(a, b, ax=ax, color=colors[i])
+
+
+
 
         ax.scatter(self.x, self.y, color='red')
         plt.title("Spline Cúbica Natural")
@@ -77,11 +106,11 @@ class cubica:
 # Método robusto con pivoteo parcial para evitar división por cero
 def inversametod_robusta(self, listadey):
     copia = self.copia()
-    y = myarray(listadey, copia.r, 1, True)
+    y = Matriz(listadey, copia.r, 1, True)
     identidad = copia.identidad()
 
     for columna in range(copia.c):
-        # 🔍 Pivoteo parcial: buscamos la mejor fila (mayor valor absoluto) en la columna actual
+        # Pivoteo parcial: buscamos la mejor fila (mayor valor absoluto) en la columna actual
         mejor_fila = columna
         max_valor = abs(copia.get_elem(columna, columna))
         for i in range(columna + 1, copia.r):
@@ -91,7 +120,7 @@ def inversametod_robusta(self, listadey):
                 mejor_fila = i
 
         if max_valor == 0:
-            raise ZeroDivisionError(f"❌ Columna {columna} no tiene ningún valor no nulo debajo para pivotear.")
+            raise ZeroDivisionError(f" Columna {columna} no tiene ningún valor no nulo debajo para pivotear.")
 
         if mejor_fila != columna:
             copia = copia.swap_rows(columna, mejor_fila)
@@ -113,7 +142,7 @@ def inversametod_robusta(self, listadey):
 
 if __name__ == "__main__":
     # Activamos el nuevo método robusto
-    myarray.inversametod = inversametod_robusta
+    #Matriz.inversametod = inversametod_robusta
     
     # Datos de prueba
     x = [1, 2, 3, 4, 5]
@@ -122,3 +151,25 @@ if __name__ == "__main__":
     # Crear spline y graficar
     spl = cubica(x, y)
     spl.graficar()
+    
+#%%
+
+#from spline_cubica import SplineCubica  # Ajustá el import según tu archivo
+
+
+# Test 1: 3 puntos (caso mínimo para un solo tramo)
+x = [0, 1, 2]
+y = [1, 2, 0]
+
+print("TEST 1: 3 puntos")
+spline = cubica(x, y)
+M, Y = spline.interpolar()
+
+print("Matriz M:")
+print(M)
+print("Vector Y:")
+print(Y)
+
+spline.graficar()
+
+
