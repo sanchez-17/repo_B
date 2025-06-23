@@ -8,54 +8,11 @@ Created on Mon Jun 16 09:37:28 2025
 from poly import Poly
 from fechas import Fechas
 import pandas as pd 
+from specs import specs_bono_1
 pd.set_option('display.max_rows', None)    # para mostrar todas las filas
 pd.set_option('display.max_columns', None) # para mostrar todas las columnas
 pd.set_option('display.width', None)       # para que no corte horizontalmente
 pd.set_option('display.max_colwidth', None) # para que muestre el contenido completo de cada celda
-
-
-specs = {
-    # 1. Identificación
-    'ticker': 'BONO_TEST_4M', 
-    'empresa': 'Empresa Prueba',
-    'descripcion': 'Bono con capitalización cuatrimestral, primer cupón a 3 meses',
-    'pais': 'ARG',
-    'moneda': 'ARS',
-
-    # 2. Fechas clave
-    'fecha_emision': (1, 1, 2025),         # Emisión: 1-ene-2025
-    'primer_cupon': (1, 4, 2025),          # Primer cupón: 1-abr-2025 (3 meses después)
-    'vencimiento': (1, 12, 2026),          # Vencimiento: 1-dic-2026
-    'madurez': (1, 12, 2026),
-
-    # 3. Cupones
-    'tasas_cupones': 0.08,                          
-    'frecuencia_cupon': 'cuatrimestral',                    
-    'fechas_tasas_cupones': [],         # para ver desde cuando hasta cuando corre cada tasa 
-   
-    
-    'fechas_cupon': None, 
-              
-    'cupon_irregular': False,
-    'tipo_cupon_irregular': None,       # para ver el tema del primer cupon cuanto corresponde etc
-    'tipo_cupon': '',                   # si es bullet, etc...
-    'tasa_cap_cupones': [], 
-    'fecha_cap_cupones': [],            
-
-    # 4. Amortización
-    'tipo': '',                   # pueden ser  Bullet (todo el capital al vencimiento), 
-    'amortizaciones': 0,
-    'porcentajes_amort': [],            # si no es bullet tiene que tener si o si las fechas y los porcentajes de amortizacion 
-    'fechas_amort': [],
-
-    # 5. Financiera
-    'valor_nominal': 1000,
-    'conteo_dias': 'actual/actual',
-    'convencion': '30/360',
-
-    # 6. Liquidación
-    'liquidacion': 2                     # Como los intereses se acumulan desde la emisión, cuando comprás un bono entre dos fechas de pago de cupón, vas a tener que pagarle al vendedor el interés corrido desde el último cupón hasta el settlement.         
-}                                        # el settelment day es el dia que recibis el cupon, osea que voy a tener que usar ese dia para calcular el VA0
 
                     
 class Bono(object):   
@@ -122,14 +79,12 @@ class Bono(object):
         for f in self.calendario_cupones:
             fecha_cupon = Fechas(f)
             dias_hasta_fecha_list.append(fecha_emision.timetodate(fecha_cupon))
-        return dias_hasta_fecha_list
-            
+        return dias_hasta_fecha_list         
      
     def copy(self):
         copia = self.lista.copy()  # forma común para listas
         # o bien: copia = list(self.lista)
         return copia
-    
     
     def cupones_amortizaciones_capital(self):
         capital = self.valor_nominal
@@ -190,10 +145,15 @@ class Bono(object):
                     tasa_cupon = self.tasas_cupones[j]
                     break
     
+            # Si no matchea ningún intervalo, pero hay una sola tasa: la uso por defecto
             if tasa_cupon is None:
-                cupones.append(0)
-                amortizaciones.append(0)
-                continue
+                if len(self.tasas_cupones) == 1:
+                    tasa_cupon = self.tasas_cupones[0]
+                else:
+                    cupones.append(0)
+                    amortizaciones.append(0)
+                    continue
+
     
             cupon = capital_actual * tasa_cupon
     
@@ -240,10 +200,7 @@ class Bono(object):
         })
     
         return df
-
-    
-    
-    
+ 
     def interes_corrido(self, fecha_valorizacion):
         """
         Calcula el interés corrido:
@@ -300,9 +257,6 @@ class Bono(object):
         interes = capital * tasa * (dias_transcurridos / dias_totales)
         return round(interes, 4)
 
-
-    
-    
     def precio_clean_dirty_por_tasa_curva(self, fecha_valorizacion=None, tir=None):
         """
         Calcula el precio clean y dirty usando una TIR y una fecha de valorización.
@@ -341,75 +295,7 @@ class Bono(object):
         clean_price = dirty_price - interes_corrido
     
         return round(clean_price, 4), round(dirty_price, 4), df
-
-
-
    
-    def Tir(self, precio=None, fecha=None):
-        """
-        Calcula la TIR usando la clase Poly. 
-        Usa t_i = (días entre flujo y fecha_valorizacion) / (frecuencia * 30), redondeados a enteros.
-        """
-        if precio is None:
-            precio = self.clean_price
-        if fecha is None:
-            fecha = self.fecha_emision
-    
-        fecha_val = Fechas(fecha)
-        fecha_val_num = fecha_val.date2num()
-    
-        df = self.cupones_amortizaciones_capital()
-        
-        # Buscar flujos posteriores o iguales a la fecha de valorización
-        fechas_futuras = []
-        flujos_futuros = []
-        for i in range(len(df)):
-            fecha_flujo_num = Fechas(df.loc[i, "Fechas"]).date2num()
-            if fecha_flujo_num >= fecha_val_num:
-                fechas_futuras = df["Fechas"].tolist()[i:]
-                flujos_futuros = df["Flujos"].tolist()[i:]
-                break
-    
-        if not flujos_futuros:
-            print("No hay flujos posteriores o iguales a la fecha dada")
-            return None
-    
-        # Calcular los t_i (en períodos) redondeados a enteros
-        dias_futuros = [Fechas(f).date2num() - fecha_val_num for f in fechas_futuras]
-        t_list = [int(round(d / (self.frecuencia_cupon * 30))) for d in dias_futuros]
-    
-        # Insertar el -precio en t = 0
-        flujos = [-precio] + flujos_futuros
-        t_list = [0] + t_list
-    
-        # Armar lista de coeficientes para el polinomio (grado mayor corresponde a flujo más lejano)
-        max_grado = max(t_list)
-        coefs = [0.0] * (max_grado + 1)
-    
-        for f, t in zip(flujos, t_list):
-            coefs[max_grado - t] += float(f)
-    
-        # Eliminar coeficiente penúltimo si es ~0
-        if len(coefs) > 2 and abs(coefs[-2]) < 1e-6:
-            coefs.pop(-2)
-    
-        # Crear el polinomio y encontrar raíces
-        poly = Poly(n=len(coefs) - 1, coefs=coefs)
-        raices, _ = poly.findroots_newton()
-    
-        positivas = [r for r, m in raices if r > 0]
-        if not positivas:
-            print("No se encontraron raíces reales positivas")
-            return None
-    
-        x_min = min(positivas)
-        tir = (1 / x_min) - 1
-        self.tir = tir
-    
-        print(f"Fecha valorización: {fecha}")
-        print(f"TIR: {round(tir, 6)}")
-        return round(tir, 6)
-
     def tasas_spots(tires, tasa_spot="6M", tasa_cupon=None, valor_nominal=100,frecuencia=2 ):
         periodos = ["1M", "2M", "3M", "4M", "6M", "1Y", "2Y", "3Y", "5Y", "7Y", "10Y", "20Y", "30Y"]
         meses = {"M": 1, "Y": 12}
@@ -449,178 +335,259 @@ class Bono(object):
             "spot (%)": [round(spot[i] * 100, 6) for i in range(1, 31)]
         })
         return df
-
+            
+            
+    def duration_convexity(self, tir=None, fecha=None):
+        """
+        Calcula la Duration modificada y la Convexity del bono,
+        que son medidas de sensibilidad del precio al cambio en la TIR.
+        """
+        if tir is None:
+            if hasattr(self, "tir"):
+                tir = self.tir
+            else:
+                raise ValueError("Debe proveer una TIR o ejecutar el método Tir primero.")
         
+        if fecha is None:
+            fecha = self.fecha_emision
+    
+        fecha0 = Fechas(fecha).date2num()
+        df = self.cupones_amortizaciones_capital()
+    
+        flujos = []
+        tiempos = []
+    
+        for _, row in df.iterrows():
+            tnum = Fechas(row["Fechas"]).date2num()
+            if tnum <= fecha0:
+                continue
+            dias = tnum - fecha0
+            t = dias / 365.0
+            tiempos.append(t)
+            flujos.append(float(row["Flujos"]))
+    
+        # Precio actual descontado (sin interés corrido)
+        P = sum(F / (1 + tir)**t for F, t in zip(flujos, tiempos))
+    
+        # Duration modificada
+        D = sum(t * F / (1 + tir)**(t + 1) for F, t in zip(flujos, tiempos)) / P
+    
+        # Convexidad
+        C = sum(t * (t + 1) * F / (1 + tir)**(t + 2) for F, t in zip(flujos, tiempos)) / P
+    
+        return round(D, 6), round(C, 6)
+
+   
+    # def Tir(self, precio=None, fecha=None): #FUNCIONA PARA ENTEROS
+    #     """
+    #     Calcula la TIR usando la clase Poly. 
+    #     Usa t_i = (días entre flujo y fecha_valorizacion) / (frecuencia * 30), redondeados a enteros.
+    #     """
+    #     if precio is None:
+    #         precio = self.clean_price
+    #     if fecha is None:
+    #         fecha = self.fecha_emision
+    
+    #     fecha_val = Fechas(fecha)
+    #     fecha_val_num = fecha_val.date2num()
+    
+    #     df = self.cupones_amortizaciones_capital()
         
+    #     # Buscar flujos posteriores o iguales a la fecha de valorización
+    #     fechas_futuras = []
+    #     flujos_futuros = []
+    #     for i in range(len(df)):
+    #         fecha_flujo_num = Fechas(df.loc[i, "Fechas"]).date2num()
+    #         if fecha_flujo_num >= fecha_val_num:
+    #             fechas_futuras = df["Fechas"].tolist()[i:]
+    #             flujos_futuros = df["Flujos"].tolist()[i:]
+    #             break
+    
+    #     if not flujos_futuros:
+    #         print("No hay flujos posteriores o iguales a la fecha dada")
+    #         return None
+    
+    #     # Calcular los t_i (en períodos) redondeados a enteros
+    #     dias_futuros = [Fechas(f).date2num() - fecha_val_num for f in fechas_futuras]
+    #     t_list = [int(round(d / (self.frecuencia_cupon * 30))) for d in dias_futuros]
+    
+    #     # Insertar el -precio en t = 0
+    #     flujos = [-precio] + flujos_futuros
+    #     t_list = [0] + t_list
+    
+    #     # Armar lista de coeficientes para el polinomio (grado mayor corresponde a flujo más lejano)
+    #     max_grado = max(t_list)
+    #     coefs = [0.0] * (max_grado + 1)
+    
+    #     for f, t in zip(flujos, t_list):
+    #         coefs[max_grado - t] += float(f)
+    
+    #     # Eliminar coeficiente penúltimo si es ~0
+    #     if len(coefs) > 2 and abs(coefs[-2]) < 1e-6:
+    #         coefs.pop(-2)
+    
+    #     # Crear el polinomio y encontrar raíces
+    #     poly = Poly(n=len(coefs) - 1, coefs=coefs)
+    #     raices, _ = poly.findroots_newton()
+    
+    #     positivas = [r for r, m in raices if r > 0]
+    #     if not positivas:
+    #         print("No se encontraron raíces reales positivas")
+    #         return None
+    
+    #     x_min = min(positivas)
+    #     tir = (1 / x_min) - 1
+    #     self.tir = tir
+    
+    #     print(f"Fecha valorización: {fecha}")
+    #     print(f"TIR: {round(tir, 6)}")
+    #     return round(tir, 6)
+    
+            
+    # def Tir(self, precio=None, fecha=None, tol=1e-8, max_iter=100):
+    #     """
+    #     Calcula la TIR resolviendo f(y)=0 con exponentes continuos t_i usando:
+    #      1) Newton-Raphson
+    #      2) Si no converge o f'(y) muy pequeño, bisección sobre [0, b_max].
+    
+    #     f(y) = sum F_i / (1+y)^{t_i}, con F_0 = -precio.
+    #     """
+    #     from fechas import Fechas
+    #     import math
+    
+    #     # --- 1) Validación inicial ---
+    #     if precio is None:
+    #         precio = self.clean_price
+    #     if fecha is None:
+    #         fecha = self.fecha_emision
+    
+    #     # --- 2) Armar flujos y tiempos exactos en años ---
+    #     fecha0 = Fechas(fecha).date2num()
+    #     df = self.cupones_amortizaciones_capital()
+    
+    #     flujos = [-precio]
+    #     tiempos = [0.0]
+    #     for _, row in df.iterrows():
+    #         tnum = Fechas(row["Fechas"]).date2num()
+    #         if tnum <= fecha0:
+    #             continue
+    #         dias = tnum - fecha0
+    #         flujos.append(float(row["Flujos"]))
+    #         tiempos.append(dias / 365.0)
+    
+    #     if len(flujos) <= 1:
+    #         print("No hay flujos futuros. No se calcula TIR.")
+    #         return None
+    
+    #     # --- 3) Definir f(y) y f'(y) para Newton ---
+    #     def f(y):
+    #         return sum(F / ((1+y)**t) for F, t in zip(flujos, tiempos))
+    
+    #     def f_prime(y):
+    #         # derivada respecto a y de F/(1+y)^t = -t * F / (1+y)^(t+1)
+    #         return sum(-t * F / ((1+y)**(t+1)) for F, t in zip(flujos, tiempos))
+    
+    #     # --- 4) Newton–Raphson inicial ---
+    #     y = 0.05  # semilla 5%
+    #     for _ in range(max_iter):
+    #         fy = f(y)
+    #         fpy = f_prime(y)
+    #         if abs(fpy) < 1e-12:
+    #             break      # derivada muy pequeña, puede divergir
+    #         y_new = y - fy/fpy
+    #         if y_new <= -1:
+    #             break      # yield imposible (< -100%)
+    #         if abs(y_new - y) < tol:
+    #             y = y_new
+    #             break
+    #         y = y_new
+    
+    #     # Si Newton no convergió razonablemente (f(y) lejos de cero):
+    #     if not math.isfinite(y) or abs(f(y)) > tol:
+    #         # --- 5) Bisección como fallback ---
+    #         a, fa = 0.0, f(0.0)
+    #         b, fb = 0.1, f(0.1)
+    #         while fa * fb > 0 and b < 1e4:
+    #             b *= 2
+    #             fb = f(b)
+    #         if fa * fb > 0:
+    #             print("No hay cambio de signo en [0,b] para bisección:", fa, fb)
+    #             return None
+    
+    #         low, high = a, b
+    #         for _ in range(max_iter):
+    #             mid = 0.5*(low+high)
+    #             fm = f(mid)
+    #             if abs(fm) < tol:
+    #                 y = mid
+    #                 break
+    #             if fa * fm < 0:
+    #                 high, fb = mid, fm
+    #             else:
+    #                 low, fa = mid, fm
+    #         else:
+    #             y = 0.5*(low+high)
+    
+    #     # --- 6) Validar resultado final ---
+    #     if not math.isfinite(y):
+    #         print("TIR no finita tras métodos numéricos")
+    #         return None
+    
+    #     self.tir = y
+    #     print(f"Fecha valorización: {fecha}")
+    #     print(f"TIR encontrada: {round(y, 8)}")
+    #     return y
+
+    def Tir(self, precio=None, fecha=None, tol=1e-8, max_iter=100):
         
+        """
+        Usa Newton-Raphson y biseccion para cualquier funcion, no solo polinomios - Chequear si esto es posible.
+        Si los t_i son racionales no puedo usar los metodos originales de Poly
+        """
         
-        
-        
-        
-    # def recalcular_precio_con_tir(self, tir_forzada):
-    #     """Recalcula el clean y dirty price usando una TIR forzada."""
-    #     df = self.df.copy()
+        # --- 1) Validación inicial ---
+        if precio is None:
+            precio = self.clean_price
+        if fecha is None:
+            fecha = self.fecha_emision
     
-    #     dias_por_periodo = self.frecuencia_cupon * 30
-    #     dias_para_va = df["Dias_hasta_la_fecha"]
+        # --- 2) Armar flujos y tiempos exactos en años ---
+        fecha0 = Fechas(fecha).date2num()
+        df = self.cupones_amortizaciones_capital()
     
-    #     df['VA_flujo'] = df['Flujos'] / (1 + tir_forzada) ** (dias_para_va / dias_por_periodo)
-    #     dirty = df['VA_flujo'].sum()
-    #     clean = dirty - self.interes_corrido(self.fecha_valorizacion)
+        flujos = [-precio]
+        tiempos = [0.0]
+        for _, row in df.iterrows():
+            tnum = Fechas(row["Fechas"]).date2num()
+            if tnum <= fecha0:
+                continue
+            dias = tnum - fecha0
+            flujos.append(float(row["Flujos"]))
+            tiempos.append(dias / 365.0)
     
-    #     self.clean_price = round(clean, 4)
-    #     self.dirty_price = round(dirty, 4)
+        if len(flujos) <= 1:
+            print("No hay flujos futuros. No se calcula TIR.")
+            return None
+        def f(y):       return sum(F/((1+y)**t) for F,t in zip(flujos, tiempos))
+        def f_prime(y): return sum(-t*F/((1+y)**(t+1)) for F,t in zip(flujos, tiempos))
     
+        # 1) Newton–Raphson vía Poly.newton_root
+        try:
+            y = Poly.newton_root_R(f, f_prime, x0=0.05, tol=tol, max_iter=max_iter)
+        except ValueError:
+            # 2) Si falla, bisección fallback
+            y = Poly.find_root_R(f, 0.0, 1.0, tol=tol, max_iter=max_iter)
     
-    # def dv01(self):
-    #     """Calcula el DV01 usando una diferencia central con +/-1 bps."""
-    #     """ te devuelve lo que varia el precio con un cambio de 0.0001 en la tir"""
-    #     tir_actual = self.tir
-    
-    #     # Cambios de ±1 bps (0.0001)
-    #     tir_up = tir_actual + 0.0001
-    #     tir_down = tir_actual - 0.0001
-    
-    #     # Guardar precios actuales
-    #     precio_actual = self.clean_price
-    
-    #     # --- Calcular precio con TIR + 1 bps ---
-    #     self.recalcular_precio_con_tir(tir_up)
-    #     precio_up = self.clean_price
-    
-    #     # --- Calcular precio con TIR - 1 bps ---
-    #     self.recalcular_precio_con_tir(tir_down)
-    #     precio_down = self.clean_price
-    
-    #     # --- Restaurar precio original ---
-    #     self.recalcular_precio_con_tir(tir_actual)
-    
-    #     # --- Calcular DV01 ---
-    #     dv01 = abs(precio_down - precio_up) / 2
-    #     return round(dv01, 6), precio_up, precio_down
-       
-        
-        #calc_tasas(maturities=[] , Tires=[]):
-        
-        # Duration()
-        # Convexity()
-    
+        self.tir = y
+        print(f"TIR encontrada: {y:.8f}")
+        return y
 
 
-# specs_test = {
-#     # 1. Identificación
-#     'ticker': 'BONO_BULLET_TEST', 
-#     'empresa': 'Empresa Prueba',
-#     'descripcion': 'Bono tipo bullet, capital pagado al vencimiento',
-#     'pais': 'ARG',
-#     'moneda': 'ARS',
-
-#     # 2. Fechas clave
-#     'fecha_emision': (1, 1, 2025),
-#     'primer_cupon': (1, 4, 2025),
-#     'vencimiento': (1, 12, 2026),
-#     'madurez': (1, 12, 2026),
-
-#     # 3. Cupones
-#     'tasas_cupones': [0.08],             # tasa fija del 8% anual
-#     'frecuencia_cupon': 'cuatrimestral', # cupones cada 4 meses
-#     'fechas_tasas_cupones': [((1,1,2025), (1,12,2026))],
-
-#     'cupon_irregular': False,
-#     'tipo_cupon_irregular': None,
-#     'tipo_cupon': 'bullet',
-
-#     'tasa_cap_cupones': [],       # sin capitalización sobre cupones
-#     'fecha_cap_cupones': [],
-
-#     # 4. Amortización
-#     'tipo': 'bullet',             # capital pagado íntegro al vencimiento
-#     'amortizaciones': 0,
-#     'porcentajes_amort': [(1.0)],
-#     'fechas_amort': [((1, 12, 2026),(1, 12, 2026))],
-
-#     # 5. Financiera
-#     'valor_nominal': 1000,
-#     'conteo_dias': 'actual/actual',
-#     'convencion': '30/360',
-
-#     # 6. Liquidación
-#     'liquidacion': 2,             # días para
-# }
-# specs_amort = {
-#     'ticker': 'AMORT01',
-#     'empresa': 'Empresa Y',
-#     'descripcion': 'Bono con amortización en cuotas iguales',
-#     'pais': 'ARG',
-#     'moneda': 'ARS',
-
-#     'fecha_emision': (1, 1, 2020),
-#     'primer_cupon': (1, 1, 2021),
-#     'vencimiento': (1, 1, 2024),
-#     'madurez': (1, 1, 2024),
-
-#     'tasas_cupones': [0.08],
-#     'fechas_tasas_cupones': [((1, 1, 2020), (1, 1, 2024))],
-#     'frecuencia_cupon': 'anual',
-#     'cupon_irregular': False,
-#     'tipo_cupon_irregular': '',
-#     'tipo_cupon': 'fijo',
-#     'tasa_cap_cupones': [],
-#     'fecha_cap_cupones': [],
-
-#     'amortizaciones': [(1, 1, 2021), (1, 1, 2022), (1, 1, 2023)],
-#     'porcentajes_amort': [1/4, 1/4, 1/4,1/4],  # Último cuarto queda para el vencimiento
-#     'fechas_amort': [((1, 1, 2020), (1, 1, 2021)), ((1, 1, 2021), (1, 1, 2022)), ((1, 1, 2022), (1, 1, 2023)),((1, 1, 2023), (1, 1, 2024))],
-
-#     'tipo': 'AMORTIZABLE',
-#     'valor_nominal': 1000,
-#     'conteo_dias': '30/360',
-#     'convencion': '30/360',
-
-#     'liquidacion': 0,
-# }
-
-specs = {
-    'ticker': 'BULLET_TIR_POS',
-    'empresa': 'Empresa Positiva',
-    'descripcion': 'Bono bullet con cupones anuales del 10% y TIR positiva',
-    'pais': 'ARG',
-    'moneda': 'ARS',
-
-    'fecha_emision': (1, 1, 2023),
-    'primer_cupon': (1, 1, 2024),
-    'vencimiento': (1, 1, 2026),
-    'madurez': (1, 1, 2026),
-
-    'tasas_cupones': [0.10],  # 10% anual
-    'fechas_tasas_cupones': [((1, 1, 2023), (1, 1, 2026))],
-    'frecuencia_cupon': 12,  # anual
-    'cupon_irregular': False,
-    'tipo_cupon_irregular': '',
-    'tipo_cupon': 'fijo',
-
-    'tasa_cap_cupones': [],
-    'fecha_cap_cupones': [],
-
-    'amortizaciones': [(1, 1, 2026)],
-    'porcentajes_amort': [1.0],
-    'fechas_amort': [((1, 1, 2023), (1, 1, 2026))],
-
-    'tipo': 'BULLET',
-    'valor_nominal': 1000,
-    'conteo_dias': '30/360',
-    'convencion': '30/360',
-
-    'liquidacion': 2
-}
-
-
-
-
-
+#%%
 tires = [0.0422, 0.0443, 0.0434, 0.0436, 0.0431, 0.0411, 0.0395, 0.0391, 0.0402, 0.0421, 0.0444, 0.0496, 0.0495]
 df = Bono.tasas_spots(tires,tasa_spot="6M",tasa_cupon=0.10,valor_nominal=100,frecuencia=2)
 print(df)
+specs= specs_bono_1()
 bono = Bono(specs)
 # print(bono.calendario_cupones)
 # print(bono.dias_hasta_fecha())
@@ -634,4 +601,50 @@ print(df.to_string(index=False))
 # print(bono.dv01())
 
 
+#%%
 
+specs = {
+'ticker': 'BONO_TEST',
+'empresa': 'Test',
+'descripcion': 'Bono 1 año 10%',
+'pais': 'PAIS',
+'moneda': 'USD',
+'fecha_emision': (1, 1, 2025),
+'primer_cupon': (1, 7, 2025),
+'vencimiento': (1, 1, 2026),
+'madurez': (1, 1, 2026),
+'tasas_cupones': [0.10 / 2],
+'frecuencia_cupon': 6,
+'fechas_tasas_cupones': [((1, 1, 2025), (1, 1, 2026))],
+'cupon_irregular': False,
+'tipo_cupon_irregular': '',
+'tipo_cupon': 'bullet',
+'tasa_cap_cupones': [],
+'fecha_cap_cupones': [],
+'amortizaciones': 1,
+'porcentajes_amort': [1.0],
+'fechas_amort' : [((1, 1, 2025), (1, 1, 2026))],
+'tipo': 'bullet',
+'valor_nominal': 100,
+'conteo_dias': 'actual/actual',
+'convencion': '30/360',
+'liquidacion': 2
+}
+#%%       Probamos TIR
+bono = Bono(specs)
+precio = 105
+tir = bono.Tir(precio=precio)
+assert tir is not None, "TIR no debería ser None"
+assert isinstance(tir, float)
+assert 0 < tir < 0.1, f"TIR fuera de rango: {tir}"
+print(f"TIR calculada por bisección: {tir:.6f}")
+
+
+
+#%%        Probamos duration y convexity
+bono = Bono(specs)
+precio = 100
+tir = bono.Tir(precio=precio)
+D, C = bono.duration_convexity(tir=tir)
+print("Duration modificada:", D)
+print("Convexidad:", C)

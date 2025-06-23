@@ -5,7 +5,7 @@ Created on Fri Apr  4 15:23:45 2025
 
 @author: bautistacenci
 """
-
+import math
 class Poly(object):
     
     def __init__(self, n=0, coefs=[0]):
@@ -200,7 +200,54 @@ class Poly(object):
             return resto
 
 
+    
+    
+    
+    @staticmethod
+    def newton_root_R(f, f_prime, x0=0.05, tol=1e-8, max_iter=100):
+        """
+        Encuentra una raíz de f(x)=0 por Newton–Raphson dado f y su derivada f_prime.
+        - x0: semilla inicial
+        - tol: tolerancia en |Δx|
+        - max_iter: máximo de iteraciones
+        Devuelve la aproximación o lanza ValueError si diverge.
+        """
+        x = x0
+        for i in range(max_iter):
+            fx = f(x)
+            fpx = f_prime(x)
+            if abs(fpx) < tol:
+                raise ValueError(f"Newton: derivada demasiado pequeña en iter {i}")
+            x_new = x - fx/fpx
+            if not math.isfinite(x_new) or x_new <= -1:
+                raise ValueError(f"Newton: x fuera de dominio en iter {i}: x_new={x_new}")
+            if abs(x_new - x) < tol:
+                return x_new
+            x = x_new
+        raise ValueError("Newton: no convergió en max_iter iteraciones")
 
+    @staticmethod
+    def find_root_R(f, a, b, tol=1e-8, max_iter=100):
+        """
+        Localiza una raíz de f(y)=0 en [a,b] por bisección + Newton opcional.
+        f debe ser una función python de un parámetro y devolver float.
+        """
+        fa, fb = f(a), f(b)
+        if fa * fb > 0:
+            raise ValueError("No hay cambio de signo en el intervalo inicial")
+        low, high = a, b
+        for _ in range(max_iter):
+            mid = 0.5*(low + high)
+            fm = f(mid)
+            if abs(fm) < tol:
+                return mid
+            # ajustar intervalo
+            if fa * fm <= 0:
+                high, fb = mid, fm
+            else:
+                low, fa = mid, fm
+        return 0.5*(low + high)
+    
 
 
     def findroot(self, x0, tol=1e-8, max_iter=100):
@@ -270,6 +317,9 @@ class Poly(object):
                     continue
     
         return lista_de_raices, polinomio_actual
+    
+    
+
 
     
     def findroots_newton(self):
