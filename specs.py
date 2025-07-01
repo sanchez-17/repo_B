@@ -74,7 +74,7 @@ def specs_bono_1():
         'madurez': (1, 12, 2026),
     
         # 3. Cupones
-        'tasas_cupones': 0.08,                          
+        'tasas_cupones': [0.08],                          
         'frecuencia_cupon': 4,                    
         'fechas_tasas_cupones': [],         # para ver desde cuando hasta cuando corre cada tasa 
        

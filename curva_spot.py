@@ -37,3 +37,14 @@ def tasa_spot_interpolada(spline, semestre):
     Evalúa la tasa spot para un semestre dado usando la spline cúbica natural ya calculada.
     """
     return spline.evaluar(semestre)
+
+#%%
+"""
+De entrada tenemos una lista de tir
+bono semestral 
+[tir_1, tir_2 , ...]
+
+calcular spots 
+
+
+"""

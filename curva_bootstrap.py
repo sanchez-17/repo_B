@@ -5,33 +5,38 @@ Created on Mon Jun 23 01:36:38 2025
 @author: Gaston
 """
 
-# curva_bootstrap.py
 
-def bootstrapping(tasas_par, valor_nominal=100):
+
+def bootstrapping(par_yields, valor_nominal=100):
     """
-    Calcula la curva de tasas cero cupón mediante bootstrapping a partir de tasas par anuales.
+    Calcula la curva de tasas cero cupón (spots) mediante bootstrapping
+    a partir de tasas par anuales en decimales.
 
     Args:
-        tasas_par (list of float): tasas par anuales en decimales para 1Y, 2Y, 3Y, ...
+        par_yields (list of float): tasas par anuales en decimales para 1Y, 2Y, 3Y, ...
         valor_nominal (float): valor nominal del bono (default: 100)
 
     Returns:
         list of float: tasas spot anuales (cero cupón) para cada año
     """
     spots = []
-    for n, c in enumerate(tasas_par):
-        n += 1  # el primer bono tiene vencimiento a 1 año
-        cupon = c * valor_nominal
-        precio = valor_nominal  # los bonos par tienen precio 100
-
-        suma_descuentos = sum([cupon / (1 + spots[i])**(i + 1) for i in range(n - 1)]) if n > 1 else 0
-
-        # Usamos la ecuación de valuación de un bono bullet:
-        # P = sum_{i=1}^{n-1} C / (1+z_i)^i + (C + FV) / (1+z_n)^n
-        flujo_final = cupon + valor_nominal
-        z_n = ((flujo_final) / (precio - suma_descuentos))**(1/n) - 1
-        spots.append(z_n)
-
+    for n, y_par in enumerate(par_yields, start=1):
+        C = y_par * valor_nominal
+        if n == 1 or n == 2:
+            # Para n=1: bono de un año, spot_1 = par_yield
+            z1 = y_par
+            spots.append(z1)
+        else:
+            # Suma de los cupones descontados con spots ya calculados
+            suma_descuentos = sum(
+                C / (1 + spots[i])**(i + 1)
+                for i in range(n - 1)
+            )
+            # Flujo del último periodo: cupón + valor nominal
+            flujo_final = C + valor_nominal
+            # Despejar z_n
+            z_n = (flujo_final / (valor_nominal - suma_descuentos))**(1/n) - 1
+            spots.append(z_n)
     return spots
 
 

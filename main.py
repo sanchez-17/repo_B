@@ -14,6 +14,7 @@ bonos_data = [
     {'maturity': 2, 'annual_coupon': 0.08, 'price': 106.20},
     {'maturity': 3, 'annual_coupon': 0.08, 'price': 106.45}
 ]
+
 overnight_rate = 0.005
 
 # a) Construir yield curve y spline
