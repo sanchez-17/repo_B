@@ -448,60 +448,101 @@ class Matriz(object):
 
 
 #
-    def resolver_sistema(self, listadey): #inversametod
-        """
-        Resuelve el sistema Ax = y utilizando eliminación de Gauss con pivoteo parcial.
-        self: matriz A (debe ser cuadrada)
-        vector_y: lista con los valores del segundo miembro (y)
-        """
+    # def resolver_sistema(self, listadey): #inversametod
+    #     """
+    #     Resuelve el sistema Ax = y utilizando eliminación de Gauss con pivoteo parcial.
+    #     self: matriz A (debe ser cuadrada)
+    #     vector_y: lista con los valores del segundo miembro (y)
+    #     """
         
+    #     """
+    #      #pones m.inversametod(listadey que son los reesultado, esto resuelve el sistema y te da los x)
+    #      """
+    #     A = self.copia()
+        
+    #     if len(listadey) != A.rows:
+    #         raise ValueError("La longitud del vector y no coincide con la cantidad de filas de la matriz.")
+        
+    #     y = Matriz(listadey, A.rows, 1, True)
+    
+    #     n = A.rows
+    
+    #     # Paso 1: Eliminación hacia adelante con pivoteo parcial
+    #     for i in range(n):
+    #         # Pivoteo si el pivote es cero
+    #         if A.get_elem(i, i) == 0:
+    #             for k in range(i + 1, n):
+    #                 if A.get_elem(k, i) != 0:
+    #                     A = A.swap_rows(i, k)
+    #                     y = y.swap_rows(i, k)
+    #                     break
+    
+    #         pivote = A.get_elem(i, i)
+    
+    #         # Escalar fila para que el pivote sea 1
+    #         for j in range(i, A.cols):
+    #             pos = A.get_pos(i, j)
+    #             A.elems[pos] /= pivote
+    #         y.elems[y.get_pos(i, 0)] /= pivote
+    
+    #         # Hacer ceros debajo del pivote
+    #         for f in range(i + 1, n):
+    #             factor = A.get_elem(f, i)
+    #             for j in range(i, A.cols):
+    #                 pos = A.get_pos(f, j)
+    #                 A.elems[pos] -= factor * A.get_elem(i, j)
+    #             y.elems[y.get_pos(f, 0)] -= factor * y.get_elem(i, 0)
+    
+    #     # Paso 2: Sustitución hacia atrás
+    #     x = [0] * n
+    #     for i in reversed(range(n)):
+    #         suma = 0
+    #         for j in range(i + 1, n):
+    #             suma += A.get_elem(i, j) * x[j]
+    #         x[i] = y.get_elem(i, 0) - suma
+    #     return x
+        
+    def resolver_sistema(self, listadey):
         """
-         #pones m.inversametod(listadey que son los reesultado, esto resuelve el sistema y te da los x)
-         """
+        Resuelve Ax = y por eliminación de Gauss con pivoteo parcial (por columna),
+        sin escalar filas, y sustitución hacia atrás.
+        """
+        # 1) Preparar A y y como copias
         A = self.copia()
-        
-        if len(listadey) != A.rows:
-            raise ValueError("La longitud del vector y no coincide con la cantidad de filas de la matriz.")
-        
-        y = Matriz(listadey, A.rows, 1, True)
-    
         n = A.rows
+        y = Matriz(listadey.copy(), n, 1, True)
     
-        # Paso 1: Eliminación hacia adelante con pivoteo parcial
+        # 2) Eliminación hacia adelante con pivoteo parcial
         for i in range(n):
-            # Pivoteo si el pivote es cero
-            if A.get_elem(i, i) == 0:
-                for k in range(i + 1, n):
-                    if A.get_elem(k, i) != 0:
-                        A = A.swap_rows(i, k)
-                        y = y.swap_rows(i, k)
-                        break
+            # --- 2.1) encontrar fila con pivote más grande en columna i
+            max_row = max(range(i, n), key=lambda r: abs(A.get_elem(r, i)))
+            if abs(A.get_elem(max_row, i)) < 1e-14:
+                raise ValueError(f"Pivot casi cero en fila {i}")
+            # --- 2.2) intercambiar filas i y max_row
+            if max_row != i:
+                A = A.swap_rows(i, max_row)
+                y = y.swap_rows(i, max_row)
     
             pivote = A.get_elem(i, i)
-    
-            # Escalar fila para que el pivote sea 1
-            for j in range(i, A.cols):
-                pos = A.get_pos(i, j)
-                A.elems[pos] /= pivote
-            y.elems[y.get_pos(i, 0)] /= pivote
-    
-            # Hacer ceros debajo del pivote
-            for f in range(i + 1, n):
-                factor = A.get_elem(f, i)
+            # --- 2.3) eliminar hacia abajo, sin escalar la fila pivote
+            for f in range(i+1, n):
+                factor = A.get_elem(f, i) / pivote
+                # actualizar fila f de A
                 for j in range(i, A.cols):
                     pos = A.get_pos(f, j)
                     A.elems[pos] -= factor * A.get_elem(i, j)
+                # actualizar y[f]
                 y.elems[y.get_pos(f, 0)] -= factor * y.get_elem(i, 0)
     
-        # Paso 2: Sustitución hacia atrás
-        x = [0] * n
+        # 3) Sustitución hacia atrás
+        x = [0.0] * n
         for i in reversed(range(n)):
-            suma = 0
-            for j in range(i + 1, n):
+            suma = 0.0
+            for j in range(i+1, n):
                 suma += A.get_elem(i, j) * x[j]
-            x[i] = y.get_elem(i, 0) - suma
+            x[i] = (y.get_elem(i, 0) - suma) / A.get_elem(i, i)
+    
         return x
-        
 
                                 
      
